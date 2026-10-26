@@ -27,6 +27,8 @@ targets:
       - Sources/MacMonitor
       - path: Resources/AppIcon.icns
         buildPhase: resources
+      - path: LICENSE
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.liangjw.mac-monitor

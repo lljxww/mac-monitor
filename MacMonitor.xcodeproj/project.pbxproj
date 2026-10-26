@@ -24,6 +24,7 @@
 		B052AD36DC0EEBEB40231E20 /* UIDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89D64F296203C689E4765463 /* UIDiagnostics.swift */; };
 		BF406FCF3E3A27A806FE2E12 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF0E59AA0A2FBCCEF96F2A69 /* main.swift */; };
 		C1AEC8A820F84E32196B0560 /* StatusItemController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 042EAB6B32FF93E0F6C4FC30 /* StatusItemController.swift */; };
+		FB872EBB05340BBC7F33ECC9 /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = DEA1E552A51E28C6E90C4F6A /* LICENSE */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -59,6 +60,7 @@
 		B80D817E2DDC32E7B51DECCB /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		D3E93452D6F66AAF7D93DDE1 /* libMonitorCore.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libMonitorCore.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		D9DAADAF20A3C025435AB9CF /* PopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverView.swift; sourceTree = "<group>"; };
+		DEA1E552A51E28C6E90C4F6A /* LICENSE */ = {isa = PBXFileReference; path = LICENSE; sourceTree = "<group>"; };
 		EF0E59AA0A2FBCCEF96F2A69 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		F4C69E5E21BB10B223FCBAB7 /* MonitorPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorPreferences.swift; sourceTree = "<group>"; };
 		F5EC59DCDA5FABDA409CDBCB /* MacMonitor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MacMonitor.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -111,6 +113,7 @@
 		1E4B6EF5F92A76F77E44AEAD = {
 			isa = PBXGroup;
 			children = (
+				DEA1E552A51E28C6E90C4F6A /* LICENSE */,
 				19331EB6E9C13610DA6E7274 /* MacMonitor */,
 				EAD86038184B0E139B9A06BF /* MonitorCore */,
 				B33E76D7ABD43923B73C1741 /* MonitorCoreTests */,
@@ -275,6 +278,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				060C6D9BDA30197E0454C869 /* AppIcon.icns in Resources */,
+				FB872EBB05340BBC7F33ECC9 /* LICENSE in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
