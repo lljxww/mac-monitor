@@ -1,0 +1,28 @@
+{
+  "gpuOnly" : {
+    "childCPUPerSampleMs" : 0,
+    "processCount" : 20,
+    "rankingP50Ms" : 0.0031249983294401318,
+    "sampleP50Ms" : 3.9028333339956589,
+    "sampleP95Ms" : 4.3263333318463992,
+    "selfCPUPerSampleMs" : 4.0743624999999994
+  },
+  "hardware" : 10,
+  "menuBar" : {
+    "childCPUPerSampleMs" : 0,
+    "processCount" : 0,
+    "rankingP50Ms" : 0.0010000003385357559,
+    "sampleP50Ms" : 0.094458333478542045,
+    "sampleP95Ms" : 0.48691666597733274,
+    "selfCPUPerSampleMs" : 0.31721250000000001
+  },
+  "popover" : {
+    "childCPUPerSampleMs" : 11.586337500000001,
+    "processCount" : 803,
+    "rankingP50Ms" : 0.0011666670616250485,
+    "sampleP50Ms" : 15.947791664075339,
+    "sampleP95Ms" : 32.765083335107192,
+    "selfCPUPerSampleMs" : 7.5042999999999989
+  },
+  "samplesPerMode" : 80
+}

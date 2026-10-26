@@ -1,0 +1,20 @@
+{
+  "hardware" : 10,
+  "menuBar" : {
+    "childCPUPerSampleMs" : 0,
+    "processCount" : 0,
+    "rankingP50Ms" : 0.003958331944886595,
+    "sampleP50Ms" : 0.4355000019131694,
+    "sampleP95Ms" : 0.61208333499962464,
+    "selfCPUPerSampleMs" : 0.60682499999999995
+  },
+  "popover" : {
+    "childCPUPerSampleMs" : 13.237550000000002,
+    "processCount" : 798,
+    "rankingP50Ms" : 9.4906666636234149,
+    "sampleP50Ms" : 20.899999999528518,
+    "sampleP95Ms" : 22.298666666756617,
+    "selfCPUPerSampleMs" : 15.665312499999999
+  },
+  "samplesPerMode" : 80
+}

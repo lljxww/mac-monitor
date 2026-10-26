@@ -1,0 +1,55 @@
+name: MacMonitor
+options:
+  deploymentTarget:
+    macOS: "14.0"
+  xcodeVersion: "16.0"
+settings:
+  base:
+    ARCHS: arm64
+    SWIFT_VERSION: "6.0"
+    CODE_SIGN_STYLE: Automatic
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+targets:
+  MonitorCore:
+    type: library.static
+    platform: macOS
+    sources: [Sources/MonitorCore]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.liangjw.mac-monitor.core
+        SKIP_INSTALL: YES
+    dependencies:
+      - sdk: IOKit.framework
+  MacMonitor:
+    type: application
+    platform: macOS
+    sources:
+      - Sources/MacMonitor
+      - path: Resources/AppIcon.icns
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.liangjw.mac-monitor
+        ENABLE_APP_SANDBOX: NO
+        ENABLE_HARDENED_RUNTIME: YES
+        COMBINE_HIDPI_IMAGES: YES
+        INFOPLIST_FILE: Resources/Info.plist
+    dependencies:
+      - target: MonitorCore
+  MonitorCoreTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources: [Tests/MonitorCoreTests]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.liangjw.mac-monitor.tests
+        GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - target: MonitorCore
+schemes:
+  MacMonitor:
+    build:
+      targets:
+        MacMonitor: all
+    test:
+      targets: [MonitorCoreTests]

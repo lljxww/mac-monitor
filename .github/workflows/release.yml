@@ -1,0 +1,83 @@
+name: Release
+
+on:
+  push:
+    tags: ['*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to release (for example v0.1.0)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-15
+    timeout-minutes: 25
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+      GH_REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ github.token }}
+      BUILD_NUMBER: ${{ github.run_number }}
+    steps:
+      - name: Validate version tag
+        shell: bash
+        run: |
+          if [[ ! "$RELEASE_TAG" =~ ^v?[0-9]+\.[0-9]+(\.[0-9]+)?(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "Expected a version tag such as v0.1.0" >&2
+            exit 1
+          fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/tags/${{ inputs.tag || github.ref_name }}
+          persist-credentials: false
+      - name: Check native toolchain
+        run: |
+          test "$(uname -m)" = arm64
+          swift --version
+      - name: Test
+        run: swift test --arch arm64
+      - name: Build, verify, and package
+        run: ./scripts/package-release.sh "$RELEASE_TAG"
+      - name: Preserve release assets
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: MacMonitor-${{ env.RELEASE_TAG }}-arm64
+          path: |
+            dist/*.zip
+            dist/*.dmg
+            dist/*.sha256
+          if-no-files-found: error
+          retention-days: 14
+      - name: Publish GitHub Release
+        shell: bash
+        run: |
+          if gh release view "$RELEASE_TAG" --json isDraft --jq '.isDraft' > .build/release-is-draft 2>/dev/null; then
+            if [[ "$(cat .build/release-is-draft)" == false ]]; then
+              echo "Release already published; leaving its assets unchanged."
+              exit 0
+            fi
+          else
+            if [[ -f "docs/releases/$RELEASE_TAG.md" ]]; then
+              cp "docs/releases/$RELEASE_TAG.md" .build/release-notes.md
+            else
+              printf 'Native Apple Silicon build for macOS 14+.\n\nDownload the DMG or ZIP below. This build is ad-hoc signed and is not notarized.\n' > .build/release-notes.md
+            fi
+            gh release create "$RELEASE_TAG" --verify-tag --draft \
+              --title "Mac Monitor $RELEASE_TAG" --notes-file .build/release-notes.md --generate-notes
+          fi
+          gh release upload "$RELEASE_TAG" dist/*.zip dist/*.dmg dist/*.sha256 --clobber
+          if [[ "$RELEASE_TAG" == *-* ]]; then
+            gh release edit "$RELEASE_TAG" --draft=false --prerelease --latest=false
+          else
+            gh release edit "$RELEASE_TAG" --draft=false --latest
+          fi
