@@ -1,7 +1,7 @@
 # Mac Monitor
 
-[![CI](https://github.com/lljxww/mac-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/lljxww/mac-monitor/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/lljxww/mac-monitor)](https://github.com/lljxww/mac-monitor/releases/latest)
+[![CI](https://github.com/mac-fantasy/mac-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/mac-fantasy/mac-monitor/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/mac-fantasy/mac-monitor)](https://github.com/mac-fantasy/mac-monitor/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 A native Apple Silicon menu bar monitor for CPU, GPU, memory, and per-process usage.
@@ -10,7 +10,22 @@ A native Apple Silicon menu bar monitor for CPU, GPU, memory, and per-process us
 
 ## 使用
 
-从 [GitHub Releases](https://github.com/lljxww/mac-monitor/releases/latest) 下载 DMG 或 ZIP。DMG 中将应用拖入 Applications 即可安装；同页提供 SHA-256 校验文件。当前自动构建为 **ad-hoc 签名，未经 Developer ID 签名和公证**，系统可能限制首次打开；也可以从源码构建：
+通过组织的 [统一 Homebrew tap](https://github.com/mac-fantasy/homebrew-tap) 安装：
+
+```bash
+brew install --cask mac-fantasy/tap/mac-monitor
+```
+
+仅支持 Apple Silicon、macOS 14+。tap 每 6 小时同步最新稳定版 Release；应用当前没有内置更新器，通过以下命令升级：
+
+```bash
+brew update
+brew upgrade --cask mac-fantasy/tap/mac-monitor
+```
+
+普通卸载使用 `brew uninstall --cask mac-fantasy/tap/mac-monitor`，保留设置；加 `--zap` 会清理设置。若已手动安装 `MacMonitor.app`，先退出并移走旧应用后再通过 Homebrew 安装。
+
+从 [GitHub Releases](https://github.com/mac-fantasy/mac-monitor/releases/latest) 下载 DMG 或 ZIP。DMG 中将应用拖入 Applications 即可安装；同页提供 SHA-256 校验文件。当前自动构建为 **ad-hoc 签名，未经 Developer ID 签名和公证**，系统可能限制首次打开；也可以从源码构建：
 
 ```bash
 ./scripts/build-app.sh --run
