@@ -14,7 +14,8 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
 
     private struct ImageKey: Equatable {
         let metrics: [Metric]
-        let segments: [Int]
+        let layout: [Metric]
+        let percentages: [Int]
         let numbers: [String]
         let appearance: NSAppearance.Name
     }
@@ -65,32 +66,26 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
             statusItem.button?.setAccessibilityValue(description)
             lastDescription = description
         }
-        let key = ImageKey(metrics: metrics, segments: metrics.map { metric in
-            snapshot.percent(for: metric).map { Int(ceil(min(100, max(0, $0)) / 100 * 8)) } ?? -1
+        let layout = preferences.statusItemMetrics
+        let key = ImageKey(metrics: metrics, layout: layout, percentages: metrics.map { metric in
+            StatusItemGraphic.percentage(snapshot.percent(for: metric)) ?? -1
         }, numbers: showNumbers ? metrics.map { DisplayFormat.percent(snapshot.percent(for: $0)) } : [],
                            appearance: statusItem.button?.effectiveAppearance.name ?? .aqua)
         guard key != lastImageKey else { return }
         lastImageKey = key
-        let groupWidth: CGFloat = showNumbers ? 48 : 12
-        let size = NSSize(width: CGFloat(metrics.count) * groupWidth + 8, height: 22)
+        let size = NSSize(width: showNumbers ? 32 + CGFloat(metrics.count) * 37 : 32, height: 22)
         let image = NSImage(size: size, flipped: false) { rect in
-            for (index, metric) in metrics.enumerated() {
-                let value = snapshot.percent(for: metric)
-                let active = value.map { Int(ceil(min(100, max(0, $0)) / 100 * 8)) } ?? 0
-                let x = 6 + CGFloat(index) * groupWidth
-                for segment in 0..<8 {
-                    let segmentRect = NSRect(x: x, y: 3 + CGFloat(segment) * 2.1, width: 7, height: 1.3)
-                    let alpha: CGFloat = value == nil ? 0.12 : (segment < active ? 1 : 0.20)
-                    metric.nsColor.withAlphaComponent(alpha).setFill()
-                    NSBezierPath(roundedRect: segmentRect, xRadius: 0.4, yRadius: 0.4).fill()
-                }
-                if showNumbers {
+            StatusItemGraphic.draw(snapshot: snapshot, layout: layout, visibleMetrics: Set(metrics),
+                                   center: NSPoint(x: 16, y: 11))
+            if showNumbers {
+                for (index, metric) in metrics.enumerated() {
+                    let value = snapshot.percent(for: metric)
                     let text = DisplayFormat.percent(value)
                     let attributes: [NSAttributedString.Key: Any] = [
                         .font: NSFont.monospacedDigitSystemFont(ofSize: 10, weight: .medium),
-                        .foregroundColor: NSColor.labelColor
+                        .foregroundColor: metric.nsColor
                     ]
-                    (text as NSString).draw(at: NSPoint(x: x + 11, y: 5), withAttributes: attributes)
+                    (text as NSString).draw(at: NSPoint(x: 34 + CGFloat(index) * 37, y: 5), withAttributes: attributes)
                 }
             }
             return true
@@ -147,7 +142,9 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
             "statusButtonWindow": statusItem.button?.window != nil,
             "statusButtonFrame": statusItem.button.map { NSStringFromRect($0.frame) } ?? "none",
             "contentFrame": popover.contentViewController.map { NSStringFromRect($0.view.frame) } ?? "none",
-            "visibleMetrics": preferences.orderedMetrics.map(\.rawValue)
+            "visibleMetrics": preferences.orderedMetrics.map(\.rawValue),
+            "statusItemMetrics": preferences.statusItemMetrics.map(\.rawValue),
+            "renderedStatusItemMetrics": lastImageKey?.layout.map(\.rawValue) ?? []
         ]
     }
 
@@ -170,6 +167,8 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
 
     func setDiagnosticAppearance(_ name: NSAppearance.Name?) {
         popover.contentViewController?.view.window?.appearance = name.flatMap(NSAppearance.init(named:))
+        statusItem.button?.appearance = name.flatMap(NSAppearance.init(named:))
+        refresh()
     }
 
     func saveStatusItemImage(to url: URL) throws {

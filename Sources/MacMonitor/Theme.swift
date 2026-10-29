@@ -43,6 +43,66 @@ enum DisplayFormat {
     }
 }
 
+/// Shared by the menu bar and the settings preview, so assignments look identical.
+enum StatusItemGraphic {
+    static func percentage(_ value: Double?) -> Int? {
+        guard let value, value.isFinite else { return nil }
+        return Int(min(100, max(0, value)).rounded())
+    }
+
+    static func draw(snapshot: SystemSnapshot, layout: [Metric], visibleMetrics: Set<Metric>, center: NSPoint) {
+        for position in [StatusItemPosition.outerRing, .innerRing] {
+            let metric = layout[position.rawValue]
+            guard visibleMetrics.contains(metric) else { continue }
+            let radius: CGFloat = position == .outerRing ? 9.5 : 6.6
+            let track = NSBezierPath(ovalIn: NSRect(x: center.x - radius, y: center.y - radius,
+                                                  width: radius * 2, height: radius * 2))
+            track.lineWidth = 1.7
+            metric.nsColor.withAlphaComponent(0.28).setStroke()
+            track.stroke()
+            guard let value = percentage(snapshot.percent(for: metric)), value > 0 else { continue }
+            metric.nsColor.setStroke()
+            if value == 100 {
+                track.stroke()
+            } else {
+                let arc = NSBezierPath()
+                arc.lineWidth = 1.7
+                arc.lineCapStyle = .round
+                arc.appendArc(withCenter: center, radius: radius, startAngle: 90,
+                              endAngle: 90 - CGFloat(value) * 3.6, clockwise: true)
+                arc.stroke()
+            }
+        }
+        let metric = layout[StatusItemPosition.center.rawValue]
+        guard visibleMetrics.contains(metric) else { return }
+        let value = percentage(snapshot.percent(for: metric))
+        let text = (value.map(String.init) ?? "—") as NSString
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.monospacedDigitSystemFont(ofSize: value == 100 ? 5.5 : 7, weight: .semibold),
+            .foregroundColor: metric.nsColor
+        ]
+        let size = text.size(withAttributes: attributes)
+        text.draw(at: NSPoint(x: center.x - size.width / 2, y: center.y - size.height / 2), withAttributes: attributes)
+    }
+}
+
+struct StatusItemPreview: View {
+    let snapshot: SystemSnapshot
+    let layout: [Metric]
+    let visibleMetrics: Set<Metric>
+    var size: CGFloat = 44
+
+    var body: some View {
+        Image(nsImage: NSImage(size: NSSize(width: 22, height: 22), flipped: false) { _ in
+            StatusItemGraphic.draw(snapshot: snapshot, layout: layout, visibleMetrics: visibleMetrics,
+                                   center: NSPoint(x: 11, y: 11))
+            return true
+        })
+        .resizable().interpolation(.high).frame(width: size, height: size)
+        .accessibilityHidden(true)
+    }
+}
+
 struct QuietButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label

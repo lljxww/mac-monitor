@@ -24,6 +24,7 @@ enum UIDiagnostics {
             try await Task.sleep(for: .seconds(2.5))
             checks["accessoryActivationPolicy"] = NSApp.activationPolicy() == .accessory
             checks["allMetricsVisibleByDefault"] = store.preferences.orderedMetrics == Metric.allCases
+            checks["defaultRingLayout"] = store.preferences.statusItemMetrics == [.memory, .cpu, .gpu]
             checks["cpuProcessSampling"] = store.snapshot.cpuProcessState == .available
             checks["memoryProcessSampling"] = store.snapshot.processes.contains { ($0.memoryBytes ?? 0) > 0 }
             checks["gpuProcessSampling"] = store.snapshot.gpuProcessState == .available
@@ -35,7 +36,8 @@ enum UIDiagnostics {
             checks["applicationHasNoMainWindow"] = NSApp.mainWindow == nil
             checks["noAutomaticControlFocus"] = ["none", "NSPopoverWindow", "NSPanel", "_NSPopoverWindow"].contains(firstState["focusedResponder"] as? String ?? "")
             try controller.savePopoverImage(to: directory.appendingPathComponent("overview.png"))
-            try controller.saveStatusItemImage(to: directory.appendingPathComponent("menu-bars.png"))
+            try controller.saveStatusItemImage(to: directory.appendingPathComponent("menu-rings.png"))
+            try saveRingExamples(to: directory.appendingPathComponent("ring-states.png"))
             for metric in Metric.allCases {
                 let previousDate = store.snapshot.date
                 store.route = .processes(metric)
@@ -54,6 +56,37 @@ enum UIDiagnostics {
             checks["settingsStopsProcessEnumeration"] = store.latestSnapshot.processes.isEmpty
             try controller.savePopoverImage(to: directory.appendingPathComponent("settings.png"))
             checks["noTextInputInSettings"] = noTextInputs(NSApp.windows.flatMap { $0.contentView.map { [$0] } ?? [] })
+            store.preferences.setMetric(.cpu, for: .outerRing)
+            checks["assigningOccupiedMetricSwapsPositions"] = store.preferences.statusItemMetrics == [.cpu, .memory, .gpu]
+            checks["layoutRedrawsImmediately"] = controller.diagnosticState["renderedStatusItemMetrics"] as? [String] == ["cpu", "memory", "gpu"]
+            store.preferences.setMetric(.memory, for: .center)
+            checks["centerMetricCanChange"] = store.preferences.statusItemMetrics == [.cpu, .gpu, .memory]
+            try await Task.sleep(for: .milliseconds(200))
+            try controller.savePopoverImage(to: directory.appendingPathComponent("settings-reassigned.png"))
+            try controller.saveStatusItemImage(to: directory.appendingPathComponent("menu-rings-reassigned.png"))
+            var permutationsPersist = true
+            for outer in Metric.allCases {
+                for inner in Metric.allCases where inner != outer {
+                    store.preferences.setMetric(outer, for: .outerRing)
+                    store.preferences.setMetric(inner, for: .innerRing)
+                    let layout = store.preferences.statusItemMetrics
+                    let restored = MonitorPreferences(defaults: UserDefaults(suiteName: domain)!)
+                    permutationsPersist = permutationsPersist && layout[0] == outer && layout[1] == inner
+                        && Set(layout) == Set(Metric.allCases) && restored.statusItemMetrics == layout
+                }
+            }
+            checks["allSixLayoutsPersist"] = permutationsPersist
+            let invalidDomain = domain + ".invalid-layout"
+            let invalidDefaults = UserDefaults(suiteName: invalidDomain)!
+            defer { invalidDefaults.removePersistentDomain(forName: invalidDomain) }
+            invalidDefaults.set(["cpu", "cpu", "unknown"], forKey: "statusItemMetrics")
+            checks["invalidLayoutUsesDefaults"] = MonitorPreferences(defaults: invalidDefaults).statusItemMetrics == [.memory, .cpu, .gpu]
+            store.preferences.setMetric(.memory, for: .outerRing)
+            store.preferences.setMetric(.cpu, for: .innerRing)
+            checks["ringValuesHandleMissingAndBounds"] = StatusItemGraphic.percentage(nil) == nil
+                && StatusItemGraphic.percentage(.nan) == nil && StatusItemGraphic.percentage(.infinity) == nil
+                && StatusItemGraphic.percentage(-5) == 0 && StatusItemGraphic.percentage(150) == 100
+            let compactWidth = controller.diagnosticState["statusItemWidth"] as? CGFloat
             store.preferences.setVisible(.gpu, visible: false)
             checks["hiddenMetricRemoved"] = !store.preferences.orderedMetrics.contains(.gpu)
             checks["settingsPersist"] = MonitorPreferences(defaults: UserDefaults(suiteName: domain)!).visibleMetrics == [.cpu, .memory]
@@ -64,6 +97,8 @@ enum UIDiagnostics {
             store.preferences.setVisible(.memory, visible: true)
             store.preferences.setShowPercentages(true)
             checks["optionalPercentages"] = store.preferences.showPercentages
+                && (controller.diagnosticState["statusItemWidth"] as? CGFloat ?? 0) > (compactWidth ?? 0)
+            try controller.saveStatusItemImage(to: directory.appendingPathComponent("menu-rings-percentages.png"))
             store.preferences.setShowPercentages(false)
             store.route = .overview
             try await waitFor { store.snapshot.cpuProcessState == .available && store.snapshot.gpuProcessState == .available }
@@ -71,6 +106,7 @@ enum UIDiagnostics {
             controller.setDiagnosticAppearance(.darkAqua)
             try await Task.sleep(for: .milliseconds(200))
             try controller.savePopoverImage(to: directory.appendingPathComponent("overview-dark.png"))
+            try controller.saveStatusItemImage(to: directory.appendingPathComponent("menu-rings-dark.png"))
             store.route = .settings
             try await Task.sleep(for: .milliseconds(200))
             try controller.savePopoverImage(to: directory.appendingPathComponent("settings-dark.png"))
@@ -97,6 +133,31 @@ enum UIDiagnostics {
             if condition() { return }
             try await Task.sleep(for: .milliseconds(100))
         }
+    }
+
+    private static func saveRingExamples(to url: URL) throws {
+        let snapshots = [
+            SystemSnapshot(cpuPercent: 46, gpuPercent: 24,
+                           memory: MemoryUsage(total: 100, app: 72, wired: 0, compressed: 0)),
+            SystemSnapshot(cpuPercent: 0, gpuPercent: 0,
+                           memory: MemoryUsage(total: 100, app: 0, wired: 0, compressed: 0)),
+            SystemSnapshot(cpuPercent: 100, gpuPercent: 100,
+                           memory: MemoryUsage(total: 100, app: 100, wired: 0, compressed: 0)),
+            SystemSnapshot()
+        ]
+        let image = NSImage(size: NSSize(width: 240, height: 56), flipped: false) { rect in
+            NSColor.windowBackgroundColor.setFill()
+            rect.fill()
+            for (index, snapshot) in snapshots.enumerated() {
+                StatusItemGraphic.draw(snapshot: snapshot, layout: [.memory, .cpu, .gpu],
+                                       visibleMetrics: Set(Metric.allCases),
+                                       center: NSPoint(x: 30 + CGFloat(index) * 60, y: 28))
+            }
+            return true
+        }
+        guard let data = image.tiffRepresentation, let bitmap = NSBitmapImageRep(data: data),
+              let png = bitmap.representation(using: .png, properties: [:]) else { return }
+        try png.write(to: url)
     }
 
     private static func noTextInputs(_ views: [NSView]) -> Bool {

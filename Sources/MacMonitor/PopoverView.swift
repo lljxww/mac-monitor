@@ -27,12 +27,8 @@ struct PopoverView: View {
     private var header: some View {
         HStack(spacing: 10) {
             if store.route == .overview {
-                HStack(alignment: .bottom, spacing: 3) {
-                    ForEach(Array(Metric.allCases.enumerated()), id: \.element) { index, metric in
-                        RoundedRectangle(cornerRadius: 1.5).fill(metric.color)
-                            .frame(width: 5, height: CGFloat([13, 21, 17][index]))
-                    }
-                }
+                StatusItemPreview(snapshot: store.snapshot, layout: preferences.statusItemMetrics,
+                                  visibleMetrics: preferences.visibleMetrics, size: 26)
                 .frame(width: 34, height: 34)
                 .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 9))
                 VStack(alignment: .leading, spacing: 3) {
@@ -195,7 +191,40 @@ struct PopoverView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 VStack(alignment: .leading, spacing: 10) {
-                    settingTitle("监控维度", subtitle: "同时控制菜单栏柱图和资源概览的显示。")
+                    settingTitle("菜单栏布局", subtitle: "选择每个位置的指标，颜色随指标变化。")
+                    HStack(spacing: 16) {
+                        StatusItemPreview(snapshot: store.snapshot, layout: preferences.statusItemMetrics,
+                                          visibleMetrics: preferences.visibleMetrics)
+                            .frame(width: 64)
+                        VStack(spacing: 0) {
+                            ForEach(StatusItemPosition.allCases) { position in
+                                HStack(spacing: 8) {
+                                    Circle().fill(preferences.metric(for: position).color).frame(width: 6, height: 6)
+                                    Text(position.title).font(.system(size: 12, weight: .medium))
+                                    Spacer(minLength: 8)
+                                    Picker(position.title, selection: Binding(
+                                        get: { preferences.metric(for: position) },
+                                        set: { preferences.setMetric($0, for: position) })) {
+                                        ForEach(Metric.allCases) { metric in
+                                            Text(metric.title + (preferences.visibleMetrics.contains(metric) ? "" : "（已隐藏）")).tag(metric)
+                                        }
+                                    }
+                                    .labelsHidden().pickerStyle(.menu).controlSize(.small).focusable(false)
+                                    .frame(width: 112)
+                                    .accessibilityLabel("\(position.title)显示的指标")
+                                }
+                                .padding(.vertical, 7)
+                                if position != .center { Divider() }
+                            }
+                        }
+                    }
+                    .padding(12)
+                    .background(Color.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: 10))
+                    Text("选择已占用的指标会交换位置；中心始终显示数字。")
+                        .font(.system(size: 10)).foregroundStyle(.tertiary)
+                }
+                VStack(alignment: .leading, spacing: 10) {
+                    settingTitle("监控维度", subtitle: "同时控制菜单栏图标和资源概览的显示。")
                     VStack(spacing: 0) {
                         ForEach(Metric.allCases) { metric in
                             HStack(spacing: 10) {
@@ -233,8 +262,8 @@ struct PopoverView: View {
                     }
                 }
                 VStack(alignment: .leading, spacing: 10) {
-                    settingTitle("菜单栏", subtitle: "每根柱图有 8 个分段，分别对应当前占用。")
-                    Toggle("在柱图旁显示百分比", isOn: Binding(
+                    settingTitle("菜单栏数值", subtitle: "圆环保留完整底轨，亮色弧线表示已用比例。")
+                    Toggle("在圆环旁显示百分比", isOn: Binding(
                         get: { preferences.showPercentages }, set: { preferences.setShowPercentages($0) }))
                         .font(.system(size: 12)).toggleStyle(.switch).controlSize(.small).focusable(false)
                         .padding(12).background(Color.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: 10))
